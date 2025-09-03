@@ -8,7 +8,7 @@
     "test-external-rest": "mocha 'test/rest/external/**/*.test.js' --timeout 10000 --reporter mochawesome",
     "test-external-graphql": "mocha 'test/graphql/external/**/*.test.js' --timeout 10000 --reporter mochawesome",
     "test-controller-rest": "mocha 'test/rest/controller/**/*.test.js' --timeout 10000 --reporter mochawesome",
-    "start-all": "concurrently \"npm run start-rest\" \"npm run start-graphql\"",
+    "start": "concurrently \"npm run start-rest\" \"npm run start-graphql\"",
     "start-graphql": "node graphql/server.js",
     "start-rest": "node server.js"
   },
