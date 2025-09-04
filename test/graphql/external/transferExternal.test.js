@@ -22,7 +22,7 @@ describe('Transfer', () => {
                         }
                     `,
                      variables: {
-                        "username": "Andre",
+                        "username": "andre",
                         "password": "123456"
                     }
 
@@ -48,8 +48,8 @@ describe('Transfer', () => {
                         }
                     `,
                     variables: {
-                        "from": "Andre",
-                        "to": "Sam",
+                        "from": "andre",
+                        "to": "sam",
                         "value": 100
                     }
                    
@@ -80,8 +80,8 @@ describe('Transfer', () => {
                         }
                     `,
                     variables: {
-                        "from": "Sam",
-                        "to": "Andre",
+                        "from": "sam",
+                        "to": "andre",
                         "value": 20000
                     }
             });
@@ -93,7 +93,6 @@ describe('Transfer', () => {
         it('c) Validar mensagem de token de autenticação não informado', async () => {
             const resposta = await request("http://localhost:4000")
                 .post('/graphql')
-               // .set('Authorization', `Bearer ${token}`)
                 .send({
                     query: `
                         mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
@@ -106,8 +105,8 @@ describe('Transfer', () => {
                         }
                     `,
                     variables: {
-                        "from": "Andre",
-                        "to": "Sam",
+                        "from": "andre",
+                        "to": "sam",
                         "value": 10
                     }
             });
