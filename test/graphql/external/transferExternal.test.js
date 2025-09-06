@@ -1,119 +1,104 @@
 // Bibliotecas
 const request = require('supertest');
-const { expect } = require('chai');
+const { expect,use } = require('chai');
+
+const chaiExclude = require('chai-exclude');
+use(chaiExclude);
+require('dotenv').config();
+
 
 // Testes
 describe('Transfer', () => {
     let token
 
     describe('Mutation Transfer - GraphQL', () => {
-        beforeEach(async () => {
-            const respostaLogin = await request('http://localhost:4000')
-                .post('/graphql')
-                .send({
-                     query: `
-                        mutation LoginUser($username: String!, $password: String!) {
-                            loginUser(username: $username, password: $password) {
-                                token
-                                user {
-                                    username
-                                }
-                            }
-                        }
-                    `,
-                     variables: {
-                        "username": "andre",
-                        "password": "123456"
-                    }
-
-                });
+        //com base no nosso contexto atual, que roda todos os testes em 54ms, se fosse mais que 1h, teria que ser um beforeEach
+        before(async () => {
+            const loginUser = require('../fixture/requisicoes/login/loginUser.json')
+            const respostaLogin = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
+                .send(loginUser);
+            //console.log(respostaLogin.body.data.loginUser.token)
 
             token = respostaLogin.body.data.loginUser.token;
         });
 
+        beforeEach(() => {
+            createTransfer = require('../fixture/requisicoes/transferencia/createTransfer.json')
+        })
+
 
         it('a) Validar transferência com sucesso quando envio valores válidos', async () => {
-            const resposta = await request('http://localhost:4000')
-                .post('/graphql')
+            const respostaEsperada = require('../fixture/respostas/transferencia/transferData.json')
+
+            const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
                 .set('Authorization', `Bearer ${token}`)
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "andre",
-                        "to": "sam",
-                        "value": 100
-                    }
-                   
-                });
+                .send(createTransfer);
             
-            expect(resposta.status).to.equal(200);
-            
-            // Validação com um Fixture
-            const respostaEsperada = require('../fixture/respostas/transferData.json')
-            delete resposta.body.data.createTransfer.date;
-            delete respostaEsperada.date; 
-            expect(resposta.body.data.createTransfer).to.deep.equal(respostaEsperada);
+            expect(respostaTransferencia.status).to.equal(200);
+            expect(respostaTransferencia.body.data.createTransfer)
+                .excluding('date')
+                .to.deep.equal(respostaEsperada.data.createTransfer)
         });
 
         it('b) Validar saldo indisponível para transferência', async () => {
-            const resposta = await request("http://localhost:4000")
-                .post('/graphql')
+            createTransfer.variables.value = 10000.01;
+
+            const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
                 .set('Authorization', `Bearer ${token}`)
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "sam",
-                        "to": "andre",
-                        "value": 20000
-                    }
-            });
+                .send(createTransfer);
             
-            expect(resposta.status).to.equal(200);
-            expect(resposta.body.errors[0]).to.have.property('message', 'Saldo insuficiente');
+            expect(respostaTransferencia.status).to.equal(200);
+            expect(respostaTransferencia.body.errors[0]).to.have.property('message', 'Saldo insuficiente');
         });
 
         it('c) Validar mensagem de token de autenticação não informado', async () => {
-            const resposta = await request("http://localhost:4000")
-                .post('/graphql')
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "andre",
-                        "to": "sam",
-                        "value": 10
-                    }
-            });
+            const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
+                .send(createTransfer);
             
-            expect(resposta.status).to.equal(200);
-            expect(resposta.body.errors[0]).to.have.property('message', 'Autenticação obrigatória');
+            expect(respostaTransferencia.status).to.equal(200);
+            expect(respostaTransferencia.body.errors[0]).to.have.property('message', 'Autenticação obrigatória');
         });
-   
+
+
+        it('d) Validar tentativa de transferencia de valor acima de 5k para usuário não favorecido', async () => {
+                createTransfer.variables.value = 5001
+                createTransfer.variables.to = "julio"
+                const resposta = await request(process.env.BASE_URL_GRAPHQL)
+                    .post('')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(createTransfer);
+            
+                expect(resposta.status).to.equal(200);
+              //  console.log(resposta.body)
+                expect(resposta.body.errors[0]).to.have.property('message', 'Transferência acima de R$ 5.000,00 só para favorecidos');
+        });
+
+        it('e) Validar tentativa de transferencia com remetente não encontrado', async () => {
+            createTransfer.variables.from = "pedro"
+             const resposta = await request(process.env.BASE_URL_GRAPHQL)
+                    .post('')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(createTransfer);
+            
+             expect(resposta.status).to.equal(200);
+             //console.log(resposta.body)
+             expect(resposta.body.errors[0]).to.have.property('message', 'Usuário remetente ou destinatário não encontrado');
+        });
+
+
+         it('f) Validar tentativa de transferencia para destinatario não encontrado', async () => {
+            createTransfer.variables.to = "joao"
+            const resposta = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
+                .set('Authorization', `Bearer ${token}`)
+                .send(createTransfer);
+            
+             expect(resposta.status).to.equal(200);
+             expect(resposta.body.errors[0].message).to.equal('Usuário remetente ou destinatário não encontrado');
+         });
+         });  
     });
-});

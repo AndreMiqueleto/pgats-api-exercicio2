@@ -25,11 +25,16 @@ jobs:
     - name: Rodar os testes de API via Controller
       run: npm run test-controller-rest
 
-    - name: ▶️ INICIAR A API REST E GRAPHQL 
+    - name: INICIAR A API REST E GRAPHQL 
       run: npm start &
 
-    - name: ⏳ Esperar a API estar Funcionando
-      run: sleep 5
+    - name: Esperar a API estar Funcionando
+      run: sleep 8
+
+    - name: Criar .env
+      run: |
+        echo "BASE_URL_REST=${{ secrets.BASE_URL_REST }}" >> .env
+        echo "BASE_URL_GRAPHQL=${{ secrets.BASE_URL_GRAPHQL }}" >> .env
 
     - name: Executar os testes de API REST via HTTP
       run: npm run test-external-rest
