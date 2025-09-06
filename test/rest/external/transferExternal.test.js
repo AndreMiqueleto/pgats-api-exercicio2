@@ -31,7 +31,7 @@ describe('Transfer', () => {
             expect(resposta.body).to.have.property('error', 'Usuário remetente ou destinatário não encontrado')
         });
 
-        it('Usando Mocks: Quando informo remetente e destinatario inexistentes recebo 400', async () => {
+        it('Quando informo remetente e destinatario inexistentes recebo 400', async () => {
             const resposta = await request(process.env.BASE_URL_REST)
                 .post('/transfers')
                 .set('Authorization', `Bearer ${token}`)
@@ -45,7 +45,7 @@ describe('Transfer', () => {
             expect(resposta.body).to.have.property('error', 'Usuário remetente ou destinatário não encontrado');
         });
 
-        it('Usando Mocks: Quando informo valores válidos eu tenho sucesso com 201 CREATED', async () => {
+        it('Quando informo valores válidos eu tenho sucesso com 201 CREATED', async () => {
             const resposta = await request(process.env.BASE_URL_REST)
                 .post('/transfers')
                 .set('Authorization', `Bearer ${token}`)
