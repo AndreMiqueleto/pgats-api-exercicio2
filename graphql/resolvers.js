@@ -23,6 +23,6 @@ module.exports = {
     createTransfer: (parent, { from, to, value }, context) => {
       if (!context.user) throw new Error('Autenticação obrigatória');
       return transferService.transfer({ from, to, value });
-    },
+    },         
   },
 };

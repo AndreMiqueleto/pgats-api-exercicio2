@@ -1,0 +1,51 @@
+[
+        {
+            "nomeDoTeste": "Saldo insuficiente",
+             "createTransfer": {
+             "query": "mutation CreateTransfer($from: String!, $to: String!, $value: Float!) { createTransfer(from: $from, to: $to, value: $value) { date from to value } }",
+            "variables": {
+                "from": "andre",
+                "to": "sam",
+                "value": 10000.01
+                }
+             },
+            "mensagemEsperada": "Saldo insuficiente"
+        },
+        {
+            "nomeDoTeste": "Transferencia Nao permitida de 5K para usuuario não favorecido",
+             "createTransfer": {
+             "query": "mutation CreateTransfer($from: String!, $to: String!, $value: Float!) { createTransfer(from: $from, to: $to, value: $value) { date from to value } }",
+            "variables": {
+                "from": "julio",
+                "to": "sam",
+                "value": 5001
+              }
+            },
+            "mensagemEsperada": "Transferência acima de R$ 5.000,00 só para favorecidos"
+        },
+        {
+            "nomeDoTeste": "Remetente nao encontrado",
+             "createTransfer": {
+             "query": "mutation CreateTransfer($from: String!, $to: String!, $value: Float!) { createTransfer(from: $from, to: $to, value: $value) { date from to value } }",
+            "variables": {
+                "from": "pedro",
+                "to": "sam",
+                "value": 10
+              }
+            },
+            "mensagemEsperada": "Usuário remetente ou destinatário não encontrado"
+        },
+
+        {
+            "nomeDoTeste": "Destinatario nao encontrado",
+             "createTransfer": {
+             "query": "mutation CreateTransfer($from: String!, $to: String!, $value: Float!) { createTransfer(from: $from, to: $to, value: $value) { date from to value } }",
+            "variables": {
+                "from": "andre",
+                "to": "joao",
+                "value": 10
+              }
+            },
+            "mensagemEsperada": "Usuário remetente ou destinatário não encontrado"
+        }       
+]

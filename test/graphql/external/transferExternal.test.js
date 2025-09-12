@@ -1,119 +1,74 @@
 // Bibliotecas
 const request = require('supertest');
-const { expect } = require('chai');
+const { expect,use } = require('chai');
+
+const chaiExclude = require('chai-exclude');
+use(chaiExclude);
+require('dotenv').config();
+
 
 // Testes
 describe('Transfer', () => {
     let token
 
     describe('Mutation Transfer - GraphQL', () => {
-        beforeEach(async () => {
-            const respostaLogin = await request('http://localhost:4000')
-                .post('/graphql')
-                .send({
-                     query: `
-                        mutation LoginUser($username: String!, $password: String!) {
-                            loginUser(username: $username, password: $password) {
-                                token
-                                user {
-                                    username
-                                }
-                            }
-                        }
-                    `,
-                     variables: {
-                        "username": "andre",
-                        "password": "123456"
-                    }
-
-                });
+        //com base no nosso contexto atual, que roda todos os testes em 54ms, se fosse mais que 1h, teria que ser um beforeEach
+        before(async () => {
+            const loginUser = require('../fixture/requisicoes/login/loginUser.json')
+            const respostaLogin = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
+                .send(loginUser);
+            //console.log(respostaLogin.body.data.loginUser.token)
 
             token = respostaLogin.body.data.loginUser.token;
         });
 
+        beforeEach(() => {
+            createTransfer = require('../fixture/requisicoes/transferencia/createTransfer.json')
+        })
 
-        it('a) Validar transferência com sucesso quando envio valores válidos', async () => {
-            const resposta = await request('http://localhost:4000')
-                .post('/graphql')
+
+        it('Testando a regra relacionada a transferência com sucesso quando envio valores válidos', async () => {
+            const respostaEsperada = require('../fixture/respostas/transferencia/transferData.json')
+
+            const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                .post('')
                 .set('Authorization', `Bearer ${token}`)
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "andre",
-                        "to": "sam",
-                        "value": 100
-                    }
-                   
-                });
+                .send(createTransfer);
             
-            expect(resposta.status).to.equal(200);
-            
-            // Validação com um Fixture
-            const respostaEsperada = require('../fixture/respostas/transferData.json')
-            delete resposta.body.data.createTransfer.date;
-            delete respostaEsperada.date; 
-            expect(resposta.body.data.createTransfer).to.deep.equal(respostaEsperada);
+            expect(respostaTransferencia.status).to.equal(200);
+            expect(respostaTransferencia.body.data.createTransfer)
+                .excluding('date')
+                .to.deep.equal(respostaEsperada.data.createTransfer)
         });
 
-        it('b) Validar saldo indisponível para transferência', async () => {
-            const resposta = await request("http://localhost:4000")
-                .post('/graphql')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "sam",
-                        "to": "andre",
-                        "value": 20000
-                    }
-            });
-            
-            expect(resposta.status).to.equal(200);
-            expect(resposta.body.errors[0]).to.have.property('message', 'Saldo insuficiente');
-        });
-
-        it('c) Validar mensagem de token de autenticação não informado', async () => {
-            const resposta = await request("http://localhost:4000")
-                .post('/graphql')
-                .send({
-                    query: `
-                        mutation CreateTransfer($from: String!, $to: String!, $value: Float!) {
-                            createTransfer(from: $from, to: $to, value: $value) {
-                                from
-                                to
-                                value
-                                date
-                            }
-                        }
-                    `,
-                    variables: {
-                        "from": "andre",
-                        "to": "sam",
-                        "value": 10
-                    }
-            });
-            
-            expect(resposta.status).to.equal(200);
-            expect(resposta.body.errors[0]).to.have.property('message', 'Autenticação obrigatória');
-        });
    
+
+    const testesDeErrosDeNegocio = require('../fixture/requisicoes/transferencia/createTransferWithError.json')
+        testesDeErrosDeNegocio.forEach(teste => {
+            it(`Testando a regra relacionada a ${teste.nomeDoTeste}`, async () => {
+
+                const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                    .post('')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(teste.createTransfer);
+                
+                expect(respostaTransferencia.status).to.equal(200);
+                expect(respostaTransferencia.body.errors[0].message).to.equal(teste.mensagemEsperada);
+            });
+
+        })
+
+
+
+            it('Testando a regra relacionada a token de autenticação não informado', async () => {
+                const respostaTransferencia = await request(process.env.BASE_URL_GRAPHQL)
+                    .post('')
+                    .send(createTransfer);
+                
+                expect(respostaTransferencia.status).to.equal(200);
+                expect(respostaTransferencia.body.errors[0]).to.have.property('message', 'Autenticação obrigatória');
+            });
+
+        });  
     });
-});
